@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartCart - Supermarket Checkout</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 50;
+            display: none;
+        }
+        .toast.show {
+            display: block;
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+            from {
+                transform: translate(-50%, 100%);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, 0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <div class="flex items-center">
+            <i id="toast-icon" class="mr-2"></i>
+            <span id="toast-message"></span>
+        </div>
+    </div>
+
+    <div id="root" class="min-h-screen">
+        <!-- Navigation Bar -->
+        <nav class="bg-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <i class="fas fa-shopping-cart text-blue-600 text-2xl"></i>
+                        <span class="ml-2 text-xl font-semibold">SmartCart</span>
+                    </div>
+                    <div class="hidden md:flex items-center space-x-4">
+                        <button class="text-gray-600 hover:text-blue-600 flex items-center">
+                            <i class="fas fa-camera"></i>
+                            <span class="ml-1">Scan</span>
+                        </button>
+                        <button class="text-gray-600 hover:text-blue-600 flex items-center">
+                            <i class="fas fa-list"></i>
+                            <span class="ml-1">List</span>
+                        </button>
+                        <button class="text-gray-600 hover:text-blue-600 flex items-center">
+                            <i class="fas fa-credit-card"></i>
+                            <span class="ml-1">Pay</span>
+                        </button>
+                        <button class="text-gray-600 hover:text-blue-600 flex items-center">
+                            <i class="fas fa-receipt"></i>
+                            <span class="ml-1">Receipts</span>
+                        </button>
+                        <button class="text-gray-600 hover:text-blue-600 flex items-center">
+                            <i class="fas fa-star"></i>
+                            <span class="ml-1">Rewards</span>
+                        </button>
+                    </div>
+                    <!-- Mobile menu button -->
+                    <div class="md:hidden flex items-center">
+                        <button id="mobile-menu-button" class="text-gray-600 hover:text-blue-600">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Mobile menu -->
+                <div id="mobile-menu" class="md:hidden hidden">
+                    <div class="px-2 pt-2 pb-3 space-y-1">
+                        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                            <i class="fas fa-camera mr-2"></i>Scan
+                        </a>
+                        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                            <i class="fas fa-list mr-2"></i>List
+                        </a>
+                        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                            <i class="fas fa-credit-card mr-2"></i>Pay
+                        </a>
+                        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                            <i class="fas fa-receipt mr-2"></i>Receipts
+                        </a>
+                        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                            <i class="fas fa-star mr-2"></i>Rewards
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Scanner Section -->
+            <section class="mb-8">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Scan Items</h2>
+                    <div class="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg mb-4">
+                        <div id="camera-container" class="flex items-center justify-center relative">
+                            <div class="text-center">
+                                <i class="fas fa-camera text-4xl text-gray-400 mb-2"></i>
+                                <p class="text-gray-500">Camera access required for scanning</p>
+                                <button id="enable-camera" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                    Enable Camera
+                                </button>
+                            </div>
+                            <video id="camera-feed" class="hidden w-full h-full rounded-lg"></video>
+                            <div id="scanning-overlay" class="hidden absolute inset-0 border-2 border-blue-500 rounded-lg">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="w-64 h-64 border-2 border-blue-500 rounded-lg"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Shopping List Section -->
+            <section class="mb-8">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Shopping List</h2>
+                    <div id="shopping-list" class="space-y-4">
+                        <!-- Sample Items -->
+                        <div class="flex items-center justify-between p-4 border rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                                    <i class="fas fa-shopping-basket text-gray-400"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="font-medium">Organic Bananas</h3>
+                                    <p class="text-gray-500">$2.99/lb</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center space-x-2">
+                                    <button class="text-gray-500 hover:text-blue-600">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <span class="w-8 text-center">1</span>
+                                    <button class="text-gray-500 hover:text-blue-600">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <button class="text-red-500 hover:text-red-600">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Total Section -->
+                        <div class="border-t pt-4 mt-4">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Total</span>
+                                <span id="total-amount" class="text-xl font-bold">$2.99</span>
+                            </div>
+                            <button id="checkout-button" class="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                Proceed to Checkout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Payment Section -->
+            <section class="mb-8">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Payment</h2>
+                    <form id="payment-form" class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Card Number</label>
+                            <input type="text" id="card-number" placeholder="1234 5678 9012 3456" 
+                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                maxlength="19" pattern="\d{4}\s?\d{4}\s?\d{4}\s?\d{4}">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-700 mb-2">Expiry Date</label>
+                                <input type="text" id="expiry-date" placeholder="MM/YY" 
+                                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    maxlength="5" pattern="\d{2}/\d{2}">
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 mb-2">CVV</label>
+                                <input type="text" id="cvv" placeholder="123" 
+                                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    maxlength="3" pattern="\d{3}">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            Pay Now
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Loyalty Program Section -->
+            <section>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Loyalty Rewards</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="border rounded-lg p-4">
+                            <div class="flex items-center mb-4">
+                                <i class="fas fa-star text-yellow-400 text-2xl"></i>
+                                <span class="ml-2 text-lg font-medium">Your Points</span>
+                            </div>
+                            <p class="text-3xl font-bold text-blue-600">250</p>
+                            <p class="text-gray-500">Points available</p>
+                        </div>
+                        <div class="border rounded-lg p-4">
+                            <div class="flex items-center mb-4">
+                                <i class="fas fa-gift text-purple-500 text-2xl"></i>
+                                <span class="ml-2 text-lg font-medium">Rewards</span>
+                            </div>
+                            <p class="text-gray-700">Redeem 500 points for $5 off your next purchase!</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toast notification
+            function showToast(message, type = 'info') {
+                const toast = document.getElementById('toast');
+                const toastIcon = document.getElementById('toast-icon');
+                const toastMessage = document.getElementById('toast-message');
+                
+                // Set icon and color based on type
+                if (type === 'success') {
+                    toastIcon.className = 'fas fa-check-circle text-green-500';
+                } else if (type === 'error') {
+                    toastIcon.className = 'fas fa-exclamation-circle text-red-500';
+                } else {
+                    toastIcon.className = 'fas fa-info-circle text-blue-500';
+                }
+                
+                toastMessage.textContent = message;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // Camera handling
+            const enableCameraBtn = document.getElementById('enable-camera');
+            const cameraContainer = document.getElementById('camera-container');
+            const cameraFeed = document.getElementById('camera-feed');
+            const scanningOverlay = document.getElementById('scanning-overlay');
+            let stream = null;
+
+            if (enableCameraBtn) {
+                enableCameraBtn.addEventListener('click', async () => {
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { facingMode: 'environment' }
+                        });
+                        
+                        cameraFeed.srcObject = stream;
+                        cameraFeed.classList.remove('hidden');
+                        scanningOverlay.classList.remove('hidden');
+                        enableCameraBtn.parentElement.classList.add('hidden');
+                        
+                        cameraFeed.play();
+                        showToast('Camera enabled successfully', 'success');
+                        
+                        // Start scanning simulation
+                        startScanning();
+                    } catch (error) {
+                        console.error('Error accessing camera:', error);
+                        showToast('Unable to access camera. Please check permissions.', 'error');
+                    }
+                });
+            }
+
+            // Simulate barcode scanning
+            function startScanning() {
+                // Simulate finding a product every few seconds
+                const products = [
+                    { name: 'Organic Apples', price: 3.99 },
+                    { name: 'Whole Grain Bread', price: 4.50 },
+                    { name: 'Fresh Milk', price: 3.29 },
+                    { name: 'Free Range Eggs', price: 5.99 }
+                ];
+                
+                let index = 0;
+                const scanInterval = setInterval(() => {
+                    if (index < products.length && stream) {
+                        const product = products[index];
+                        showToast(`Scanned: ${product.name}`, 'success');
+                        addItemToList(product);
+                        index++;
+                    } else {
+                        clearInterval(scanInterval);
+                    }
+                }, 3000);
+            }
+
+            // Shopping list handling
+            function addItemToList(product) {
+                const shoppingList = document.getElementById('shopping-list');
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex items-center justify-between p-4 border rounded-lg';
+                itemDiv.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                            <i class="fas fa-shopping-basket text-gray-400"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="font-medium">${product.name}</h3>
+                            <p class="text-gray-500">$${product.price.toFixed(2)}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <button class="text-gray-500 hover:text-blue-600">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <span class="w-8 text-center">1</span>
+                            <button class="text-gray-500 hover:text-blue-600">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <button class="text-red-500 hover:text-red-600">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                // Insert before the total section
+                const totalSection = shoppingList.querySelector('.border-t').parentElement;
+                shoppingList.insertBefore(itemDiv, totalSection);
+                
+                // Update total
+                updateTotal();
+            }
+
+            function updateTotal() {
+                const items = document.querySelectorAll('#shopping-list .flex.items-center.justify-between:not(:last-child)');
+                let total = 0;
+                
+                items.forEach(item => {
+                    const priceText = item.querySelector('.text-gray-500').textContent;
+                    const price = parseFloat(priceText.replace('$', ''));
+                    const quantity = parseInt(item.querySelector('.w-8.text-center').textContent);
+                    total += price * quantity;
+                });
+                
+                document.getElementById('total-amount').textContent = `$${total.toFixed(2)}`;
+            }
+
+            // Payment form handling
+            const paymentForm = document.getElementById('payment-form');
+            const cardNumberInput = document.getElementById('card-number');
+            const expiryDateInput = document.getElementById('expiry-date');
+            const cvvInput = document.getElementById('cvv');
+
+            // Format card number with spaces
+            cardNumberInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\s/g, '');
+                value = value.replace(/(\d{4})/g, '$1 ').trim();
+                e.target.value = value;
+            });
+
+            // Format expiry date
+            expiryDateInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length >= 2) {
+                    value = value.slice(0, 2) + '/' + value.slice(2);
+                }
+                e.target.value = value;
+            });
+
+            // Handle payment submission
+            paymentForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                showToast('Processing payment...', 'info');
+                
+                // Simulate payment processing
+                setTimeout(() => {
+                    showToast('Payment successful!', 'success');
+                    paymentForm.reset();
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>
